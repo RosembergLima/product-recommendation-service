@@ -8,6 +8,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+/**
+ * Configuration class for the application's caching layer.
+ * <p>
+ * Uses Caffeine as the caching provider with customized TTL (Time-To-Live)
+ * and size constraints for different types of data.
+ * </p>
+ */
 @Configuration
 public class CacheConfig {
 

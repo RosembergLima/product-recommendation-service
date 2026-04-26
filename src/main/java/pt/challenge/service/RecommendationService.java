@@ -1,32 +1,38 @@
 package pt.challenge.service;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import pt.challenge.client.ProductCatalogClient;
-import pt.challenge.client.UserProfileClient;
+import pt.challenge.client.ExternalCatalogClient;
+import pt.challenge.client.ExternalProfileClient;
 import pt.challenge.dto.FeedbackRequest;
 import pt.challenge.dto.FeedbackResponse;
 import pt.challenge.dto.RecommendationDto;
 import pt.challenge.dto.RecommendationResponse;
-import pt.challenge.dto.external.product.ProductCategoryResponse;
-import pt.challenge.dto.external.user.UserProfileResponse;
+import pt.challenge.dto.external.user.UserProfileDto;
 import pt.challenge.entity.Feedback;
 import pt.challenge.mapper.RecommendationMapper;
 import pt.challenge.repository.FeedbackRepository;
+import pt.challenge.util.AvailabilityStatus;
 
+/**
+ * Service class for managing the business logic of product recommendations.
+ * <p>
+ * This service coordinates the fetching of user profiles and product catalogs,
+ * applies filtering and ranking logic, and handles user feedback persistence.
+ * </p>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendationService {
 
   private final FeedbackRepository feedbackRepository;
-  private final UserProfileClient userProfileClient;
-  private final ProductCatalogClient productCatalogClient;
+  private final ExternalProfileClient externalClient;
+  private final ExternalCatalogClient externalCatalogClient;
   private final RecommendationMapper recommendationMapper;
 
   /**
@@ -57,26 +63,26 @@ public class RecommendationService {
   public List<RecommendationResponse> getRecommendations(String userId) {
     log.info("Generating recommendations for user: {}", userId);
 
-    List<RecommendationDto> allRecommendations = Collections.synchronizedList(new java.util.ArrayList<>());
+    java.util.concurrent.ConcurrentLinkedQueue<RecommendationDto> allRecommendations = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
     // 1. Fetch User Profile
     log.debug("Fetching profile for user: {} to determine preferences", userId);
-    UserProfileResponse userProfile = userProfileClient.getUserProfile(userId);
+    UserProfileDto userProfileDto = externalClient.getUserProfile(userId);
 
     // 2. Fetch Products for Preferred Categories in Parallel
-    log.debug("User {} preferred categories: {}", userId, userProfile.preferences().categories());
-    List<CompletableFuture<Void>> futures = userProfile.preferences().categories().stream()
-        .map(category -> CompletableFuture.supplyAsync(() -> productCatalogClient.getProductsByCategory(category))
+    log.debug("User {} preferred categories: {}", userId, userProfileDto.categories());
+    List<CompletableFuture<Void>> futures = userProfileDto.categories().stream()
+        .map(category -> CompletableFuture.supplyAsync(() -> externalCatalogClient.getProductsByCategory(category))
             .thenAccept(categoryResponse -> {
               log.debug("Processing {} products for category: {}", categoryResponse.products().size(), categoryResponse.category());
               categoryResponse.products().forEach(product -> {
                 // Price range filter (inclusive)
                 boolean withinPriceRange =
-                    product.currentPrice() >= userProfile.preferences().priceRange().min() &&
-                        product.currentPrice() <= userProfile.preferences().priceRange().max();
+                    product.currentPrice() >= userProfileDto.priceMin() &&
+                        product.currentPrice() <= userProfileDto.priceMax();
 
                 // Availability filter
-                boolean isAvailable = List.of("IN_STOCK", "LOW_STOCK")
+                boolean isAvailable = AvailabilityStatus.getAvailableStatuses()
                     .contains(product.availability());
 
                 if (withinPriceRange && isAvailable) {
@@ -107,8 +113,8 @@ public class RecommendationService {
     log.info("Successfully generated {} recommendations for user: {}", allRecommendations.size(), userId);
     // 5. Build Response
     return List.of(new RecommendationResponse(
-        allRecommendations,
-        (short) allRecommendations.size()
+        allRecommendations.stream().toList(),
+        allRecommendations.size()
     ));
   }
 }

@@ -5,6 +5,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 
+/**
+ * Configuration class for external service communication and resilience.
+ * <p>
+ * This class defines the RestClient beans for each external service, applying
+ * specific timeout configurations to ensure the system remains responsive.
+ * </p>
+ */
 @Configuration
 public class ResilienceConfig {
 

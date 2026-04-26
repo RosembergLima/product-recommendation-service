@@ -10,15 +10,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import pt.challenge.dto.external.product.ProductCatalogDto;
 import pt.challenge.dto.external.product.ProductCategoryResponse;
 import pt.challenge.dto.external.user.UserProfileResponse;
+import pt.challenge.mapper.ProductCatalogMapper;
 
+/**
+ * Client implementation for interacting with the External Product Catalog Service.
+ * <p>
+ * This client manages product retrieval by category, implementing a Circuit Breaker
+ * to handle service instability and a short-lived cache for pricing accuracy.
+ * </p>
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ProductCatalogClient {
+public class ProductCatalogClient implements ExternalCatalogClient {
 
   private final RestClient productCatalogRestClient;
+  private final ProductCatalogMapper mapper;
 
   /**
    * Fetches products for a specific category from the external catalog.
@@ -26,14 +36,17 @@ public class ProductCatalogClient {
    * @param category the product category
    * @return the product category response
    */
+
+  @Override
   @Cacheable(value = "products", key = "#category")
   @CircuitBreaker(name = "productCatalog", fallbackMethod = "getProductsByCategoryFallback")
-  public ProductCategoryResponse getProductsByCategory(String category) {
+  public ProductCatalogDto getProductsByCategory(String category) {
     log.info("Requesting products for category: {}", category);
-    return productCatalogRestClient.get()
+    ProductCategoryResponse productCategoryResponse = productCatalogRestClient.get()
         .uri("/api/products/category/{category}", category)
         .retrieve()
         .body(ProductCategoryResponse.class);
+    return mapper.toDto(productCategoryResponse);
   }
 
   /**
@@ -43,8 +56,15 @@ public class ProductCatalogClient {
    * @param t the throwable cause
    * @return an empty product category response
    */
-  public ProductCategoryResponse getProductsByCategoryFallback(String category, Throwable t) {
-    log.error("Failed to fetch products for category {}. Reason: {}. Using empty fallback.", category, t.getMessage(), t);
-    return new ProductCategoryResponse(category, 0, Set.of(), null);
+  @Override
+  public ProductCatalogDto getProductsByCategoryFallback(String category, Throwable t) {
+    log.warn("Failed to fetch products for category {}. Reason: {}. Using empty fallback.", category, t.getMessage());
+    ProductCategoryResponse fallbackResponse = new ProductCategoryResponse(
+        category,
+        0,
+        Set.of(),
+        null
+    );
+    return mapper.toDto(fallbackResponse);
   }
 }

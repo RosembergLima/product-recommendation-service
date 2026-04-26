@@ -8,12 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import pt.challenge.dto.external.user.UserProfileResponse;
+import pt.challenge.dto.external.user.UserProfileDto;
 import com.github.tomakehurst.wiremock.WireMockServer;
-
-import java.util.Map;
-import java.util.Set;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,10 +56,10 @@ class UserProfileClientIntegrationTest {
                                 }
                                 """)));
 
-        UserProfileResponse response = userProfileClient.getUserProfile(userId);
+        UserProfileDto response = userProfileClient.getUserProfile(userId);
 
         assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.preferences().categories()).contains("electronics");
+        assertThat(response.categories()).contains("electronics");
     }
 
     @Test
@@ -72,11 +68,11 @@ class UserProfileClientIntegrationTest {
         stubFor(get(urlEqualTo("/api/users/" + userId + "/profile"))
                 .willReturn(aResponse().withStatus(500)));
 
-        UserProfileResponse response = userProfileClient.getUserProfile(userId);
+        UserProfileDto response = userProfileClient.getUserProfile(userId);
 
         assertThat(response).isNotNull();
         assertThat(response.userId()).isEqualTo(userId);
-        assertThat(response.preferences().categories()).isEmpty();
+        assertThat(response.categories()).isEmpty();
         
         // Verify retry happened (max-attempts: 3)
         verify(3, getRequestedFor(urlEqualTo("/api/users/" + userId + "/profile")));

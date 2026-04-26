@@ -1,7 +1,6 @@
 package pt.challenge;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -9,16 +8,14 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import pt.challenge.client.ProductCatalogClient;
-import pt.challenge.client.UserProfileClient;
+import pt.challenge.client.ExternalCatalogClient;
+import pt.challenge.client.ExternalProfileClient;
 import pt.challenge.dto.RecommendationResponse;
-import pt.challenge.dto.external.product.ProductCategoryResponse;
-import pt.challenge.dto.external.user.UserProfileResponse;
+import pt.challenge.dto.external.product.ProductCatalogDto;
+import pt.challenge.dto.external.product.ProductCatalogDto.ProductDto;
+import pt.challenge.dto.external.user.UserProfileDto;
 import pt.challenge.service.RecommendationService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -29,37 +26,42 @@ class ProductRecommendationServiceApplicationTests {
   private RecommendationService recommendationService;
 
   @MockitoBean
-  private UserProfileClient userProfileClient;
+  private ExternalProfileClient externalProfileClient;
 
   @MockitoBean
-  private ProductCatalogClient productCatalogClient;
+  private ExternalCatalogClient externalCatalogClient;
 
   @Test
   void shouldGetRecommendations() {
     String userId = "123";
 
-    UserProfileResponse profile = new UserProfileResponse(
-        userId,
-        null,
-        new UserProfileResponse.Preferences(Set.of("electronics"), new UserProfileResponse.PriceRange(0, 1000), Set.of(), "style"),
-        null,
-        null
-    );
+    UserProfileDto profile = UserProfileDto.builder()
+        .userId(userId)
+        .categories(Set.of("electronics"))
+        .priceMin(0)
+        .priceMax(1000)
+        .build();
 
-    ProductCategoryResponse categoryResponse = new ProductCategoryResponse(
-        "electronics",
-        1,
-        Set.of(new ProductCategoryResponse.ProductItem("PROD-1", "Test Product", 100.0, 150.0, 4.5, 10, "IN_STOCK")),
-        null
-    );
+    ProductCatalogDto categoryResponse = ProductCatalogDto.builder()
+        .category("electronics")
+        .products(Set.of(ProductDto.builder()
+            .productId("PROD-1")
+            .name("Test Product")
+            .currentPrice(100.0)
+            .originalPrice(150.0)
+            .averageRating(4.5)
+            .totalReviews("10")
+            .availability("IN_STOCK")
+            .build()))
+        .build();
 
-    when(userProfileClient.getUserProfile(userId)).thenReturn(profile);
-    when(productCatalogClient.getProductsByCategory("electronics")).thenReturn(categoryResponse);
+    when(externalProfileClient.getUserProfile(userId)).thenReturn(profile);
+    when(externalCatalogClient.getProductsByCategory("electronics")).thenReturn(categoryResponse);
 
     List<RecommendationResponse> responses = recommendationService.getRecommendations(userId);
 
     assertThat(responses).isNotEmpty();
-    assertThat(responses.get(0).totalRecommendations()).isEqualTo((short) 1);
+    assertThat(responses.get(0).totalRecommendations()).isEqualTo(1);
     assertThat(responses.get(0).recommendations().get(0).userId()).isEqualTo(userId);
   }
 

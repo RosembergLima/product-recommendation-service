@@ -1,19 +1,19 @@
 package pt.challenge.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import pt.challenge.client.ProductCatalogClient;
-import pt.challenge.client.UserProfileClient;
+import pt.challenge.client.ExternalCatalogClient;
+import pt.challenge.client.ExternalProfileClient;
 import pt.challenge.dto.FeedbackRequest;
 import pt.challenge.dto.FeedbackResponse;
 import pt.challenge.dto.RecommendationDto;
 import pt.challenge.dto.RecommendationResponse;
-import pt.challenge.dto.external.product.ProductCategoryResponse;
-import pt.challenge.dto.external.user.UserProfileResponse;
+import pt.challenge.dto.external.product.ProductCatalogDto;
+import pt.challenge.dto.external.product.ProductCatalogDto.ProductDto;
+import pt.challenge.dto.external.user.UserProfileDto;
 import pt.challenge.entity.Feedback;
 import pt.challenge.mapper.RecommendationMapper;
 import pt.challenge.repository.FeedbackRepository;
@@ -32,9 +32,9 @@ class RecommendationServiceTest {
     @Mock
     private FeedbackRepository feedbackRepository;
     @Mock
-    private UserProfileClient userProfileClient;
+    private ExternalProfileClient externalProfileClient;
     @Mock
-    private ProductCatalogClient productCatalogClient;
+    private ExternalCatalogClient externalCatalogClient;
     @Mock
     private RecommendationMapper recommendationMapper;
 
@@ -54,31 +54,46 @@ class RecommendationServiceTest {
     @Test
     void shouldGetRecommendationsWithVariousFilters() {
         String userId = "u1";
-        UserProfileResponse profile = new UserProfileResponse(
-                userId, null,
-                new UserProfileResponse.Preferences(Set.of("cat1"), new UserProfileResponse.PriceRange(10, 100), Set.of(), "style"),
-                null, null
-        );
+        UserProfileDto profile = UserProfileDto.builder()
+                .userId(userId)
+                .categories(Set.of("cat1"))
+                .priceMin(10)
+                .priceMax(100)
+                .build();
 
-        ProductCategoryResponse.ProductItem p1 = new ProductCategoryResponse.ProductItem("p1", "Item 1", 50.0, 50.0, 3.5, 10, "IN_STOCK"); // Matches category (rating < 4.0)
-        ProductCategoryResponse.ProductItem p2 = new ProductCategoryResponse.ProductItem("p2", "Item 2", 5.0, 5.0, 4.5, 10, "IN_STOCK");  // Price low
-        ProductCategoryResponse.ProductItem p3 = new ProductCategoryResponse.ProductItem("p3", "Item 3", 150.0, 150.0, 4.5, 10, "IN_STOCK"); // Price high
-        ProductCategoryResponse.ProductItem p4 = new ProductCategoryResponse.ProductItem("p4", "Item 4", 50.0, 50.0, 4.5, 10, "OUT_OF_STOCK"); // Out of stock
-        ProductCategoryResponse.ProductItem p5 = new ProductCategoryResponse.ProductItem("p5", "Item 5", 40.0, 60.0, 3.0, 10, "IN_STOCK"); // Great deal (discount)
-        ProductCategoryResponse.ProductItem p6 = new ProductCategoryResponse.ProductItem("p6", "Item 6", 40.0, 40.0, 4.2, 10, "LOW_STOCK"); // Highly rated (rating >= 4.0)
+        ProductDto p1 = ProductDto.builder().productId("p1").name("Item 1").currentPrice(50.0).originalPrice(50.0).averageRating(3.5).totalReviews("10").availability("IN_STOCK").build(); // Matches category (rating < 4.0)
+        ProductDto p2 = ProductDto.builder().productId("p2").name("Item 2").currentPrice(5.0).originalPrice(5.0).averageRating(4.5).totalReviews("10").availability("IN_STOCK").build();  // Price low
+        ProductDto p3 = ProductDto.builder().productId("p3").name("Item 3").currentPrice(150.0).originalPrice(150.0).averageRating(4.5).totalReviews("10").availability("IN_STOCK").build(); // Price high
+        ProductDto p4 = ProductDto.builder().productId("p4").name("Item 4").currentPrice(50.0).originalPrice(50.0).averageRating(4.5).totalReviews("10").availability("OUT_OF_STOCK").build(); // Out of stock
+        ProductDto p5 = ProductDto.builder().productId("p5").name("Item 5").currentPrice(40.0).originalPrice(60.0).averageRating(3.0).totalReviews("10").availability("IN_STOCK").build(); // Great deal (discount)
+        ProductDto p6 = ProductDto.builder().productId("p6").name("Item 6").currentPrice(40.0).originalPrice(40.0).averageRating(4.2).totalReviews("10").availability("LOW_STOCK").build(); // Highly rated (rating >= 4.0)
 
-        ProductCategoryResponse cat1Response = new ProductCategoryResponse("cat1", 6, Set.of(p1, p2, p3, p4, p5, p6), null);
+        ProductCatalogDto cat1Response = ProductCatalogDto.builder()
+                .category("cat1")
+                .products(Set.of(p1, p2, p3, p4, p5, p6))
+                .build();
 
-        when(userProfileClient.getUserProfile(userId)).thenReturn(profile);
-        when(productCatalogClient.getProductsByCategory("cat1")).thenReturn(cat1Response);
+        when(externalProfileClient.getUserProfile(userId)).thenReturn(profile);
+        when(externalCatalogClient.getProductsByCategory("cat1")).thenReturn(cat1Response);
         
         when(recommendationMapper.toDto(eq(userId), eq("cat1"), any(), anyString()))
                 .thenAnswer(invocation -> {
-                    ProductCategoryResponse.ProductItem item = invocation.getArgument(2);
+                    ProductDto item = invocation.getArgument(2);
                     String reason = invocation.getArgument(3);
-                    return new RecommendationDto(userId, item.productId(), item.name(), "cat1", 
-                            item.currentPrice().toString(), item.originalPrice().toString(), "0", 
-                            item.averageRating().toString(), "10", item.availability(), reason, "now");
+                    return RecommendationDto.builder()
+                            .userId(userId)
+                            .productId(item.productId())
+                            .productName(item.name())
+                            .category("cat1")
+                            .currentPrice(item.currentPrice().toString())
+                            .originalPrice(item.originalPrice().toString())
+                            .discount("0")
+                            .averageRating(item.averageRating().toString())
+                            .totalReviews("10")
+                            .availability(item.availability())
+                            .recommendationReason(reason)
+                            .generatedAt("now")
+                            .build();
                 });
 
         List<RecommendationResponse> results = recommendationService.getRecommendations(userId);

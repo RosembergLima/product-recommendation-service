@@ -16,6 +16,13 @@ import pt.challenge.dto.FeedbackResponse;
 import pt.challenge.dto.RecommendationResponse;
 import pt.challenge.service.RecommendationService;
 
+/**
+ * REST Controller for managing product recommendations and user feedback.
+ * <p>
+ * Provides endpoints for retrieving personalized recommendations and
+ * submitting user feedback on the recommended products.
+ * </p>
+ */
 @RestController
 @RequestMapping("api/recommendations")
 @RequiredArgsConstructor

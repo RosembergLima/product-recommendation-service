@@ -7,11 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import pt.challenge.dto.external.product.ProductCategoryResponse;
+import pt.challenge.dto.external.product.ProductCatalogDto;
 import com.github.tomakehurst.wiremock.WireMockServer;
-
-import java.util.Set;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,7 +61,7 @@ class ProductCatalogClientIntegrationTest {
                                 }
                                 """)));
 
-        ProductCategoryResponse response = productCatalogClient.getProductsByCategory(category);
+        ProductCatalogDto response = productCatalogClient.getProductsByCategory(category);
 
         assertThat(response.category()).isEqualTo(category);
         assertThat(response.products()).hasSize(1);
@@ -76,7 +73,7 @@ class ProductCatalogClientIntegrationTest {
         stubFor(get(urlEqualTo("/api/products/category/" + category))
                 .willReturn(aResponse().withStatus(500)));
 
-        ProductCategoryResponse response = productCatalogClient.getProductsByCategory(category);
+        ProductCatalogDto response = productCatalogClient.getProductsByCategory(category);
 
         assertThat(response).isNotNull();
         assertThat(response.category()).isEqualTo(category);

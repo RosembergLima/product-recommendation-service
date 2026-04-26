@@ -1,160 +1,116 @@
 # Product Recommendation Service
 
-The **Product Recommendation Service** is a Spring Boot application designed to provide personalized product recommendations for users based on their profiles, purchase history, and preferences. It integrates with external services (User Profile and Product Catalog) and allows users to submit feedback on the recommendations they receive.
+The **Product Recommendation Service** is a production-ready Spring Boot application designed to provide personalized product recommendations. It leverages modern Java features, asynchronous processing, and advanced resilience patterns to ensure high performance and reliability.
 
-## Features
+## 🚀 Features
 
-- **Personalized Recommendations**: Uses multiple strategies to determine the best product categories for a user.
-- **Asynchronous Processing**: Fetches product data from external catalogs in parallel to optimize response times.
-- **Feedback Loop**: Collects user feedback (likes/dislikes) on recommendations and stores them for future improvements.
-- **Resilience & High Concurrency**: Implements Circuit Breakers, Retries, and Bulkheads using **Resilience4j**, and leverages **Java 21 Virtual Threads** for high-traffic scenarios.
-- **Smart Caching**: Tailored caching strategies using **Caffeine** to balance data freshness and performance.
-- **API Documentation**: Interactive API documentation provided by **Swagger/OpenAPI**.
-- **Database Migrations**: Managed by **Flyway**.
-- **Containerized Environment**: Easy local setup using **Docker Compose**.
-
----
-
-## Architecture & How It Works
-
-### 1. Recommendation Flow
-When a request is made to `/api/recommendations/{userId}`:
-1.  **Fetch User Profile**: The service calls the external **User Profile Service** to get the user's data (preferences, purchase history). This call is protected by a **Bulkhead** and utilizes a long-lived cache.
-2.  **Determine Categories**: It applies a list of prioritized categories based on user preferences and behavior.
-3.  **Fetch Products**: For each identified category, it fetches products from the **Product Catalog Service** asynchronously using `CompletableFuture`. These calls are protected by a **Circuit Breaker** and use a short-lived cache to ensure pricing accuracy.
-4.  **Map & Respond**: The results are filtered by price and availability, aggregated, and returned as a list of recommended products.
-
-### 2. Feedback Mechanism
-Users can submit feedback via `/api/recommendations/feedback`. This feedback (product ID, user ID, like/dislike type, and optional comments) is stored in a PostgreSQL database with automatic JPA auditing.
-
-### 3. Resilience and Performance
--   **Retries**: Configured for the User Profile service to handle transient network issues.
--   **Circuit Breaker**: Configured for the Product Catalog service to prevent cascading failures when the catalog is down.
--   **Bulkhead**: Isolates the User Profile service to prevent it from saturating system resources during slow responses.
--   **Virtual Threads**: Enabled to handle 1000+ concurrent requests efficiently by minimizing thread blocking overhead.
--   **Differential Caching**:
-    -   **User Profile**: 24-hour TTL (Low volatility).
-    -   **Product Catalog**: 2-minute TTL (High volatility due to real-time pricing and inventory).
--   **Timeouts**: Specialized timeouts for each service (2.5s for User Profile, 1s for Product Catalog).
+- **Personalized Recommendations**: Intelligent filtering based on user profiles, preferences, and price ranges.
+- **Asynchronous Parallel Processing**: High-performance catalog fetching using `CompletableFuture` and **Java 21 Virtual Threads**.
+- **Distributed Tracing**: Automated **Correlation ID** management across logs for end-to-end traceability.
+- **Resilience Design**: Advanced fault tolerance with **Circuit Breakers**, **Retries**, and **Bulkheads**.
+- **Multi-Level Caching**: Optimized performance using **Caffeine** with specialized TTLs for volatile and non-volatile data.
+- **Observability**: Built-in monitoring with **Prometheus** metrics and **Grafana** dashboards.
+- **Clean Architecture**: Decoupled external clients and mappers adhering to **SOLID** principles.
+- **JPA Auditing**: Automatic tracking of feedback creation time.
 
 ---
 
-## Tech Stack
+## 🛠 Tech Stack
 
--   **Java 21**
--   **Spring Boot 3.4.3**
--   **Spring Data JPA**
--   **PostgreSQL** (Database)
--   **Flyway** (Migrations)
--   **Resilience4j** (Resilience)
--   **WireMock** (Mocking external services)
--   **Lombok** (Boilerplate reduction)
--   **SpringDoc OpenAPI** (Documentation)
+- **Java 21** (with Virtual Threads enabled)
+- **Spring Boot 3.4.3**
+- **Spring Data JPA** & **PostgreSQL**
+- **Resilience4j** (Fault Tolerance)
+- **Caffeine** (Caching)
+- **Flyway** (Database Migrations)
+- **Prometheus & Grafana** (Monitoring)
+- **WireMock** (External Service Simulation)
+- **Swagger/OpenAPI 3** (API Documentation)
 
 ---
 
-## Getting Started
+## 📖 Key Architectural Concepts
 
-### Prerequisites
--   Java 21
--   Docker and Docker Compose
+### 1. Resilience & Fallbacks
+The service implements defensive programming to survive external service failures:
+- **Circuit Breaker (Product Catalog)**: If the catalog service fails repeatedly, the circuit opens to prevent cascading failures.
+- **Retry (User Profile)**: Automatically retries failed profile fetches to handle transient network issues.
+- **Bulkhead (User Profile)**: Limits concurrent calls to the profile service to prevent resource exhaustion.
+- **Fallbacks**: Both services provide graceful fallbacks (empty results or default profiles) so the core recommendation engine never crashes.
 
-### Running Locally with Docker
-The easiest way to run the infrastructure (Database, WireMock, Prometheus, Grafana, SonarQube) is via Docker Compose:
+### 2. Caching Strategy
+Configured in `CacheConfig.java` to balance performance and data freshness:
+- `userProfiles`: **24-hour TTL** (Profiles change rarely).
+- `products`: **2-minute TTL** (Prices and availability are highly volatile).
 
+### 3. Monitoring & Observability
+- **Prometheus**: Scrapes metrics from `/actuator/prometheus`.
+- **Grafana**: Pre-configured dashboards to visualize throughput, latency, and resilience events.
+- **Correlation ID**: Managed by `CorrelationIdFilter`. Every request gets a unique ID in the `X-Correlation-Id` header, which is propagated to logs via MDC: `[%X{correlationId}]`.
+
+---
+
+## 🚦 How to Run
+
+### 1. Infrastructure (Docker)
+Start the Database, WireMock, Prometheus, Grafana, and SonarQube:
 ```bash
 cd local
 docker-compose up -d
 ```
 
--   **PostgreSQL**: Port 5432
--   **WireMock**: Port 8081 (Mocks the external services)
--   **Prometheus**: Port 9090
--   **Grafana**: Port 3000
--   **SonarQube**: Port 9000
-
-### Running the Application
-You can run the application using Gradle:
-
+### 2. Run the Application
 ```bash
 ./gradlew bootRun
 ```
-The service will be available at `http://localhost:8080`.
 
-### API Documentation
-Once the app is running, you can access the Swagger UI at:
-`http://localhost:8080/swagger-ui.html`
+### 3. Verify the Tools
+- **API Documentation**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **Metrics (Prometheus)**: [http://localhost:9090](http://localhost:9090)
+- **Monitoring (Grafana)**: [http://localhost:3000](http://localhost:3000) (User: `admin` / Pass: `admin123`)
+- **External Mocks (WireMock)**: [http://localhost:8081/__admin](http://localhost:8081/__admin)
+- **Code Quality (SonarQube)**: [http://localhost:9000](http://localhost:9000)
 
 ---
 
-## API Endpoints
+## 📝 API Endpoints
 
 ### Recommendations
--   **GET** `/api/recommendations/{userId}`
-    -   Fetches a list of recommended products for the given user.
+`GET /api/recommendations/{userId}`
+- **Security**: Requires HTTP Basic Auth (`admin`/`admin123`).
+- **Traceability**: Pass `X-Correlation-Id` in headers to track the request.
 
 ### Feedback
--   **POST** `/api/recommendations/feedback`
-    -   Submits feedback for a recommendation.
-    -   **Body**:
-        ```json
-        {
-          "userId": "123",
-          "productId": "456",
-          "feedback": "LIKE",
-          "comment": "Great suggestion!"
-        }
-        ```
+`POST /api/recommendations/feedback`
+- **Body**:
+```json
+{
+  "userId": "user-1",
+  "productId": "prod-123",
+  "feedback": "LIKED",
+  "comment": "Exactly what I was looking for!"
+}
+```
 
 ---
 
-## How to Test
+## 🧪 Quality & Testing
 
-### Automated Tests
-The project includes unit and integration tests using JUnit 5 and WireMock for mocking external API dependencies.
-
-To run all tests:
+### Running Tests
 ```bash
 ./gradlew test
 ```
+The project maintains high coverage with unit tests for logic and integration tests (WireMock) for external communication.
 
-### Manual Testing with WireMock
-The `local/wiremock/mappings` directory contains predefined responses for external services. You can modify these to test different scenarios (success, not found, error).
-
----
-
-## Monitoring & Quality Assurance
-
-### Prometheus & Metrics
-The application exposes metrics in Prometheus format at the following endpoint:
-- **Metrics Endpoint**: `http://localhost:8080/actuator/prometheus`
-
-You can also access the Prometheus UI to query metrics directly:
-- **Prometheus UI**: `http://localhost:9090`
-
-### Grafana Dashboards
-Grafana is pre-configured with a datasource and a dashboard for monitoring the Spring Boot application.
-- **URL**: `http://localhost:3000`
-- **Credentials**: `admin` / `admin123`
-- **Metrics**: Navigate to "Metrics" -> See real-time application metrics.
-
-### SonarQube Code Quality
-SonarQube is used to perform static code analysis and ensure code quality. The project currently maintains **98% code coverage**.
-
-- **URL**: `http://localhost:9000`
-- **Credentials**: `admin` / `admin` (You may be prompted to change the password on the first login).
-- **Authentication**: When running via CLI, use `-Dsonar.login=admin -Dsonar.password=admin` or generate a token in the SonarQube UI.
-
-To run a Sonar scan with coverage report, ensure the infrastructure is running and execute:
+### Static Analysis
+Run SonarQube analysis:
 ```bash
-./gradlew clean jacocoTestReport sonar -Dsonar.login=admin -Dsonar.password=admin123
+./gradlew clean jacocoTestReport sonar -Dsonar.login=admin -Dsonar.password=admin
 ```
 
----
-
-## Project Structure
--   `src/main/java/pt/challenge/client`: Feign-like clients for external service communication.
--   `src/main/java/pt/challenge/strategy`: Implementation of recommendation logic strategies.
--   `src/main/java/pt/challenge/config`: Configuration for security, resilience, cache, and OpenAPI.
--   `src/main/resources/db/migration`: SQL scripts for database schema management.
--   `local/`: Docker configuration and WireMock stubs.
+### Exception Handling
+Standardized error responses are managed by `GlobalExceptionHandler`:
+- `400 Bad Request`: Validation or Constraint violations.
+- `404 Not Found`: Missing resources from external APIs.
+- `503 Service Unavailable`: Triggered when the Circuit Breaker is open.
+- `500 Internal Server Error`: Unhandled exceptions.

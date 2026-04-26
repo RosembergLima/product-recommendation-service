@@ -14,6 +14,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 
+/**
+ * Global exception handler for the application.
+ * <p>
+ * This class catches various exceptions thrown by the application and transforms them
+ * into standardized error responses for the client.
+ * </p>
+ */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -29,7 +36,7 @@ public class GlobalExceptionHandler {
       MethodArgumentNotValidException ex) {
     log.debug("Validation failed for request: {}", ex.getMessage());
     Map<String, String> errors = new HashMap<>();
-    ex.getBindingResult().getAllErrors().forEach((error) -> {
+    ex.getBindingResult().getAllErrors().forEach(error -> {
       String fieldName = ((FieldError) error).getField();
       String errorMessage = error.getDefaultMessage();
       errors.put(fieldName, errorMessage);
@@ -58,7 +65,7 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(HttpClientErrorException.NotFound.class)
   public ResponseEntity<Map<String, Object>> handleNotFound(HttpClientErrorException.NotFound ex) {
-    log.error("External resource not found. Status: {}, Message: {}", ex.getStatusCode(), ex.getMessage());
+    log.warn("External resource not found. Status: {}, Message: {}", ex.getStatusCode(), ex.getMessage());
     return createErrorResponse(HttpStatus.NOT_FOUND, "Resource not found");
   }
 
@@ -71,7 +78,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(CallNotPermittedException.class)
   public ResponseEntity<Map<String, Object>> handleCallNotPermittedException(
       CallNotPermittedException ex) {
-    log.error("Circuit breaker is open. Blocking call: {}", ex.getMessage());
+    log.warn("Circuit breaker is open. Blocking call: {}", ex.getMessage());
     return createErrorResponse(HttpStatus.SERVICE_UNAVAILABLE,
         "External service is temporarily unavailable");
   }

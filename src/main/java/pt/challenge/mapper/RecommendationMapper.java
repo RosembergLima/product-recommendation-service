@@ -3,8 +3,15 @@ package pt.challenge.mapper;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Component;
 import pt.challenge.dto.RecommendationDto;
-import pt.challenge.dto.external.product.ProductCategoryResponse;
+import pt.challenge.dto.external.product.ProductCatalogDto.ProductDto;
 
+/**
+ * Mapper for creating Recommendation DTOs from product and user information.
+ * <p>
+ * This class includes the business logic for calculating discounts and
+ * formatting recommendation details.
+ * </p>
+ */
 @Component
 public class RecommendationMapper {
 
@@ -18,23 +25,23 @@ public class RecommendationMapper {
    * @return a mapped RecommendationDto
    */
   public RecommendationDto toDto(String userId, String category,
-      ProductCategoryResponse.ProductItem product, String reason) {
+      ProductDto product, String reason) {
     double discount = product.originalPrice() - product.currentPrice();
     String discountStr = String.format("%.2f", discount);
 
-    return new RecommendationDto(
-        userId,
-        product.productId(),
-        product.name(),
-        category,
-        String.valueOf(product.currentPrice()),
-        String.valueOf(product.originalPrice()),
-        discountStr,
-        String.valueOf(product.averageRating()),
-        String.valueOf(product.totalReviews()),
-        product.availability(),
-        reason,
-        LocalDateTime.now().toString()
-    );
+    return RecommendationDto.builder()
+        .userId(userId)
+        .productId(product.productId())
+        .productName(product.name())
+        .category(category)
+        .currentPrice(String.valueOf(product.currentPrice()))
+        .originalPrice(String.valueOf(product.originalPrice()))
+        .discount(discountStr)
+        .averageRating(String.valueOf(product.averageRating()))
+        .totalReviews(product.totalReviews())
+        .availability(product.availability())
+        .recommendationReason(reason)
+        .generatedAt(LocalDateTime.now().toString())
+        .build();
   }
 }

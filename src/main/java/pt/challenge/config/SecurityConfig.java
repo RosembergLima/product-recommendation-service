@@ -8,10 +8,24 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Configuration class for application security.
+ * <p>
+ * Configures HTTP Basic authentication and defines authorization rules for
+ * different API endpoints, including permitting access to documentation and metrics.
+ * </p>
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+  /**
+   * Defines the security filter chain.
+   *
+   * @param http the {@link HttpSecurity} to configure
+   * @return the configured {@link SecurityFilterChain}
+   * @throws Exception if an error occurs during configuration
+   */
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http

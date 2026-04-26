@@ -2,7 +2,7 @@ package pt.challenge.mapper;
 
 import org.junit.jupiter.api.Test;
 import pt.challenge.dto.RecommendationDto;
-import pt.challenge.dto.external.product.ProductCategoryResponse;
+import pt.challenge.dto.external.product.ProductCatalogDto.ProductDto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,9 +14,15 @@ class RecommendationMapperTest {
     void shouldMapToDto() {
         String userId = "user1";
         String category = "electronics";
-        ProductCategoryResponse.ProductItem product = new ProductCategoryResponse.ProductItem(
-                "p1", "Phone", 900.0, 1000.0, 4.8, 100, "IN_STOCK"
-        );
+        ProductDto product = ProductDto.builder()
+                .productId("p1")
+                .name("Phone")
+                .currentPrice(900.0)
+                .originalPrice(1000.0)
+                .averageRating(4.8)
+                .totalReviews("100")
+                .availability("IN_STOCK")
+                .build();
         String reason = "Great deal";
 
         RecommendationDto dto = mapper.toDto(userId, category, product, reason);
