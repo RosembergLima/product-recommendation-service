@@ -8,6 +8,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -81,6 +82,20 @@ public class GlobalExceptionHandler {
     log.warn("Circuit breaker is open. Blocking call: {}", ex.getMessage());
     return createErrorResponse(HttpStatus.SERVICE_UNAVAILABLE,
         "External service is temporarily unavailable");
+  }
+
+  /**
+   * Handles JSON parsing errors, such as invalid enum values.
+   *
+   * @param ex the exception
+   * @return error response
+   */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(
+      HttpMessageNotReadableException ex) {
+    log.debug("JSON parsing failed: {}", ex.getMessage());
+    return createErrorResponse(HttpStatus.BAD_REQUEST,
+        "Invalid request body. Check field types and formats (e.g., valid feedback types are LIKED, DISLIKED, etc.)");
   }
 
   /**
