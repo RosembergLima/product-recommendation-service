@@ -1,0 +1,51 @@
+{
+  "priority": 2,
+  "request": {
+    "method": "GET",
+    "urlPattern": "/api/users/([a-zA-Z0-9-]+)/profile"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "userId": "{{request.pathSegments.[2]}}",
+      "demographics": {
+        "age": 32,
+        "gender": "male",
+        "location": "New York",
+        "income": "50000-75000",
+        "education": "Bachelor"
+      },
+      "preferences": {
+        "categories": ["electronics", "books", "sports"],
+        "priceRange": {
+          "min": 25,
+          "max": 350
+        },
+        "brands": ["Apple", "Sony"],
+        "style": "minimalist"
+      },
+      "purchaseHistory": {
+        "totalOrders": 28,
+        "averageOrderValue": 175.50,
+        "lastPurchaseDate": "2025-10-15",
+        "favoriteCategories": ["electronics", "books"],
+        "seasonalPatterns": {
+          "spring": 22,
+          "summer": 18,
+          "fall": 35,
+          "winter": 25
+        }
+      },
+      "behaviorPatterns": {
+        "browsingFrequency": "daily",
+        "purchaseFrequency": "monthly",
+        "priceSensitivity": "medium",
+        "brandLoyalty": "high"
+      }
+    },
+    "transformers": ["response-template"]
+  }
+}

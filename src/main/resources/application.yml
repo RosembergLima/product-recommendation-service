@@ -1,0 +1,87 @@
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} [%X{correlationId}] - %msg%n"
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  application:
+    name: product-recommendation-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/product_recommendation_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    schemas: public
+  security:
+    user:
+      name: admin
+      password: admin123
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
+    enabled: true
+
+swagger:
+  url: http://localhost:8080
+  title: Product Recommendation API
+  description: Product Recommendation Documentation
+  version: 1.0.0
+
+external:
+  services:
+    user-profile:
+      url: ${USER_PROFILE_SERVICE_URL:http://localhost:8081}
+    product-catalog:
+      url: ${PRODUCT_CATALOG_SERVICE_URL:http://localhost:8081}
+
+resilience4j:
+  retry:
+    instances:
+      userProfile:
+        max-attempts: 3
+        wait-duration: 1s
+  circuitbreaker:
+    instances:
+      productCatalog:
+        register-health-indicator: true
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-type: count_based
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+  bulkhead:
+    instances:
+      userProfile:
+        max-concurrent-calls: 50
+        max-wait-duration: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus"
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true

@@ -1,0 +1,63 @@
+{
+  "priority": 2,
+  "request": {
+    "method": "GET",
+    "urlPattern": "/api/products/category/([a-zA-Z0-9-]+)"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "category": "{{request.pathSegments.[3]}}",
+      "totalProducts": "{{randomInt lower=50 upper=200}}",
+      "products": [
+        {
+          "productId": "PROD-{{randomInt lower=1000 upper=9999}}",
+          "name": "Premium {{request.pathSegments.[3]}} Item",
+          "currentPrice": "{{randomDecimal lower=50.0 upper=200.0}}",
+          "originalPrice": "{{randomDecimal lower=200.0 upper=300.0}}",
+          "averageRating": "{{randomDecimal lower=4.0 upper=5.0}}",
+          "totalReviews": "{{randomInt lower=100 upper=500}}",
+          "availability": "IN_STOCK"
+        },
+        {
+          "productId": "PROD-{{randomInt lower=1000 upper=9999}}",
+          "name": "Standard {{request.pathSegments.[3]}} Item",
+          "currentPrice": "{{randomDecimal lower=30.0 upper=100.0}}",
+          "originalPrice": "{{randomDecimal lower=100.0 upper=150.0}}",
+          "averageRating": "{{randomDecimal lower=3.5 upper=4.5}}",
+          "totalReviews": "{{randomInt lower=50 upper=200}}",
+          "availability": "IN_STOCK"
+        },
+        {
+          "productId": "PROD-{{randomInt lower=1000 upper=9999}}",
+          "name": "Budget {{request.pathSegments.[3]}} Item",
+          "currentPrice": "{{randomDecimal lower=10.0 upper=50.0}}",
+          "originalPrice": "{{randomDecimal lower=50.0 upper=80.0}}",
+          "averageRating": "{{randomDecimal lower=3.0 upper=4.0}}",
+          "totalReviews": "{{randomInt lower=20 upper=100}}",
+          "availability": "{{pickRandom 'IN_STOCK' 'LOW_STOCK'}}"
+        }
+      ],
+      "filters": {
+        "priceRange": {
+          "min": "{{randomDecimal lower=5.0 upper=20.0}}",
+          "max": "{{randomDecimal lower=200.0 upper=500.0}}"
+        },
+        "brands": [
+          "{{pickRandom 'Apple' 'Samsung' 'Nike' 'Adidas' 'Sony'}}",
+          "{{pickRandom 'Apple' 'Samsung' 'Nike' 'Adidas' 'Sony'}}",
+          "{{pickRandom 'Apple' 'Samsung' 'Nike' 'Adidas' 'Sony'}}"
+        ]
+      }
+    },
+    "delayDistribution": {
+      "type": "uniform",
+      "lower": 400,
+      "upper": 800
+    },
+    "transformers": ["response-template"]
+  }
+}

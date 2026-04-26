@@ -1,0 +1,45 @@
+{
+  "priority": 2,
+  "request": {
+    "method": "GET",
+    "urlPattern": "/api/products/category/([a-zA-Z0-9-]+)"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "category": "{{request.pathSegments.[3]}}",
+      "totalProducts": 150,
+      "products": [
+        {
+          "productId": "PROD-1234",
+          "name": "Premium {{request.pathSegments.[3]}} Item",
+          "currentPrice": 149.99,
+          "originalPrice": 249.99,
+          "averageRating": 4.5,
+          "totalReviews": 342,
+          "availability": "IN_STOCK"
+        },
+        {
+          "productId": "PROD-5678",
+          "name": "Standard {{request.pathSegments.[3]}} Item",
+          "currentPrice": 89.99,
+          "originalPrice": 119.99,
+          "averageRating": 4.2,
+          "totalReviews": 128,
+          "availability": "IN_STOCK"
+        }
+      ],
+      "filters": {
+        "priceRange": {
+          "min": 15.00,
+          "max": 450.00
+        },
+        "brands": ["Apple", "Samsung", "Sony"]
+      }
+    },
+    "transformers": ["response-template"]
+  }
+}
